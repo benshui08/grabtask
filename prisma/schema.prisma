@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User balance and profile (synced with Firebase Auth)
+model User {
+  id            String        @id // Firebase UID
+  email         String?
+  displayName   String?
+  balance       Decimal       @default(0) @db.Decimal(10, 2)
+  totalEarned   Decimal       @default(0) @db.Decimal(10, 2)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  transactions  Transaction[]
+  withdrawals   Withdrawal[]
+}
+
+// Transaction history (earnings)
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  amount      Decimal  @db.Decimal(10, 2)
+  source      String   // cpalead, survey, etc.
+  offerName   String?
+  ip          String?
+  status      String   @default("completed") // pending, completed, rejected
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Withdrawal requests
+model Withdrawal {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  amount        Decimal  @db.Decimal(10, 2)
+  method        String   // paypal, crypto, etc.
+  address       String   // PayPal email or wallet address
+  status        String   @default("pending") // pending, processing, completed, rejected
+  processedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
